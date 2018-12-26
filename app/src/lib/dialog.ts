@@ -3,12 +3,14 @@ import { sExportTitle, arrExtensions } from "../define";
 import { naotuBase } from "./base";
 import { saveKm, openKm } from "./file";
 import { naotuConf } from "../core/conf";
-import { join, basename } from "path";
+import { join, basename, extname } from "path";
 import { getUserDataDir } from "../core/path";
 import { I18n } from "../core/i18n";
 import { logger } from "../core/logger";
 import { exportFile } from "./window";
 import { getDefaultPath } from "./minder";
+import { openXmind } from "../protocol/xmind";
+import { openFreeMind } from "../protocol/freemind";
 
 /**
  * 打开脑图文件
@@ -20,11 +22,30 @@ export function openDialog() {
   if (naotuBase.HasSaved()) {
     // 已经保存了，本窗口打开
     remote.dialog.showOpenDialog(
-      { filters: [{ name: sExportTitle, extensions: arrExtensions }] },
+      { filters: [
+        { name: "KityMinder", extensions: ["km"] },
+        { name: "Xmind", extensions: ["xmind"] },
+        { name: "FreeMind", extensions: ["mm"] }        
+      ] },
       fileNames => {
-        if (!fileNames) return;
-
-        openKm(fileNames[0]);
+        if (!fileNames) return;  
+              
+        switch (extname(fileNames[0])) {
+          case '.km':
+            openKm(fileNames[0]);
+            break;
+          case '.xmind':
+            openXmind(fileNames[0], (e: any) => {              
+              openKm(e);
+            });
+            break;
+          case '.mm':
+            let filePath = openFreeMind(fileNames[0]);
+            openKm(filePath);
+            break;          
+          default:
+            break;
+        }        
       }
     );
   } else {
@@ -123,11 +144,8 @@ export function exportDialog() {
   }
 
   let filters = [];
-  let pool = kityminder.data.getRegisterProtocol();
-  for (let name in pool) {
-    // 目前导出 md 文件有问题，暂时跳过
-    if (name === "markdown") continue;
-
+  let pool = kityminder.data.getRegisterProtocol(); 
+  for (let name in pool) {   
     if (pool.hasOwnProperty(name) && pool[name].encode) {
       filters.push({
         name: pool[name].fileDescription,

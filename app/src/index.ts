@@ -10,6 +10,7 @@ import { naotuBase } from "./lib/base";
 import { onSelectedNodeItem } from "./lib/minder";
 import { remote } from "electron";
 import { shortcutDialog } from "./ui/shortcut";
+import { registerProtocol } from "./protocol/register";
 
 // 进入即记录日志
 logger.info("ipcRender init");
@@ -38,6 +39,9 @@ angular
   });
 
 $(function() {
+  // 注册 所支持的格式
+  registerProtocol();
+
   if (minder != null) {
     // auto saving
     minder.on("contentchange", function(argv: any) {
